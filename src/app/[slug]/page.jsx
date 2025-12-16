@@ -4,20 +4,31 @@ import { notFound } from "next/navigation";
 
 export const revalidate = 600;
 
+// DB helper (NO notFound here)
 async function getPost(slug) {
-  let res = await pool.query("SELECT * FROM news WHERE slug = $1", [slug]);
-  console.log(res.rows[0]);
-  if (res.rows.length === 0) {
-    //show error 404
-    notFound();
+  try {
+    const res = await pool.query("SELECT * FROM news WHERE slug = $1", [slug]);
+    return res.rows[0] || null;
+  } catch (e) {
+    console.error("DB error:", e);
+    return null;
   }
-
-  return res.rows[0];
 }
 
+// ✅ SAFE metadata (no notFound)
 export async function generateMetadata({ params }) {
-  const slug = params.slug;
-  const item = await getPost(slug);
+  const { slug } = await params;
+
+  const res = await pool.query(
+    "SELECT title, description, image FROM news WHERE slug = $1",
+    [slug]
+  );
+
+  const item = res.rows[0];
+
+  if (!item) {
+    return { title: "News not found" };
+  }
 
   return {
     title: item.title,
@@ -27,14 +38,7 @@ export async function generateMetadata({ params }) {
       description: item.description,
       url: `https://bitlinks.in/news/${slug}`,
       siteName: "BitLinks",
-      images: [
-        {
-          url: item.image,
-          width: 1200,
-          height: 630,
-          alt: item.title,
-        },
-      ],
+      images: [{ url: item.image, width: 1200, height: 630 }],
       type: "article",
     },
     twitter: {
@@ -46,9 +50,12 @@ export async function generateMetadata({ params }) {
   };
 }
 
+// ✅ notFound ONLY here
 export default async function NewsPage({ params }) {
-  const slug = params.slug;
+  const { slug } = await params;
+
   const item = await getPost(slug);
+  if (!item) notFound();
 
   return (
     <FullNewsCard
