@@ -3,7 +3,7 @@ import { Pool } from "pg";
 import dotenv from "dotenv";
 dotenv.config();
 
-const connectionString = process.env.PGSQL_CONN_STRING;
+const connectionString = process.env.DATABASE_URL;
 
 let pool;
 
