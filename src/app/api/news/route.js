@@ -16,6 +16,38 @@ if (typeof window === "undefined") {
   });
 }
 
+// GET endpoint - Fetch all news
+export async function GET() {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM news ORDER BY created_at DESC LIMIT 22"
+    );
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: result.rows
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Error fetching news:", error);
+
+    // Fallback to mock data if database is unavailable
+    const { mockNewsData } = await import("@/lib/mockData");
+    console.log("⚠️ Using mock data - database unavailable");
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: mockNewsData,
+        usingMockData: true
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  }
+}
+
 export async function POST(request) {
   try {
     const formData = await request.formData();
